@@ -1,4 +1,4 @@
-name: build
+name: release-ssid-policy
 
 on:
   workflow_dispatch:
