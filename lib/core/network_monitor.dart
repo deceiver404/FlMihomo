@@ -26,43 +26,16 @@ class NetworkStateMonitor {
   /// Check and request location permission (required for getting WiFi SSID)
   Future<bool> _checkAndRequestPermission() async {
     try {
-      // On macOS, location permission works differently
+      // On macOS, permission is handled by the system automatically
+      // when network_info_plus tries to access WiFi information.
+      // The system will show a permission dialog the first time.
+      // We just need NSLocationWhenInUseUsageDescription in Info.plist
       if (Platform.isMacOS) {
-        // Try to check permission status
-        var status = await Permission.location.status;
-
-        if (status.isGranted) {
-          _hasLocationPermission = true;
-          commonPrint.log(
-            'NetworkStateMonitor: Location permission granted on macOS',
-          );
-          return true;
-        }
-
-        // Request permission if not granted
-        if (status.isDenied) {
-          commonPrint.log(
-            'NetworkStateMonitor: Requesting location permission on macOS',
-          );
-          status = await Permission.location.request();
-
-          if (status.isGranted) {
-            _hasLocationPermission = true;
-            commonPrint.log(
-              'NetworkStateMonitor: Location permission granted on macOS',
-            );
-            return true;
-          } else {
-            commonPrint.log(
-              'NetworkStateMonitor: Location permission denied on macOS',
-            );
-            return false;
-          }
-        }
-
-        // For other statuses, try to proceed anyway
-        _hasLocationPermission = status.isGranted || status.isLimited;
-        return _hasLocationPermission;
+        _hasLocationPermission = true;
+        commonPrint.log(
+          'NetworkStateMonitor: macOS will handle location permission automatically',
+        );
+        return true;
       }
 
       // Android permission flow
@@ -230,8 +203,9 @@ class NetworkStateMonitor {
       return '';
     }
 
-    // Check if we have location permission
-    if (!_hasLocationPermission) {
+    // On macOS, system handles permission automatically
+    // On Android/iOS, check if we have location permission
+    if (!Platform.isMacOS && !_hasLocationPermission) {
       commonPrint.log(
         'NetworkStateMonitor: Cannot get SSID without location permission',
       );
