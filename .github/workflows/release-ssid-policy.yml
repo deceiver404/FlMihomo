@@ -11,11 +11,24 @@ on:
         options:
           - 'true'
           - 'false'
+      target_platform:
+        description: 'Target platform to build: mac, android, or all'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - 'mac'
+          - 'android'
+          - 'all'
 env:
   IS_STABLE: ${{ github.event.inputs.is_stable || 'true' }}
+  TARGET_PLATFORM: ${{ github.event.inputs.target_platform || 'all' }}
 
 jobs:
   build:
+    # Only run matrix entries that match the requested target_platform input.
+    # Accepts: 'mac' -> macOS entry, 'android' -> Android entry, 'all' -> both.
+    if: ${{ github.event.inputs.target_platform == 'all' || (github.event.inputs.target_platform == 'mac' && matrix.platform == 'macos') || (github.event.inputs.target_platform == 'android' && matrix.platform == 'android') }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
