@@ -43,7 +43,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>FlClash needs to access local network information to detect WiFi SSID and IP address for automatic proxy switching based on network.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>FlClash needs location access to detect WiFi SSID for automatic proxy switching based on network.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FlClash needs location access to detect WiFi SSID for automatic proxy switching based on network.</string>
 </dict>
 </plist>
