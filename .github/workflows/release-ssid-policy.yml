@@ -26,9 +26,6 @@ env:
 
 jobs:
   build:
-    # Only run matrix entries that match the requested target_platform input.
-    # Accepts: 'mac' -> macOS entry, 'android' -> Android entry, 'all' -> both.
-    if: ${{ github.event.inputs.target_platform == 'all' || (github.event.inputs.target_platform == 'mac' && matrix.platform == 'macos') || (github.event.inputs.target_platform == 'android' && matrix.platform == 'android') }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -40,13 +37,31 @@ jobs:
             arch: arm64
 
     steps:
+      - name: Check if platform should run
+        id: should_run
+        run: |
+          TARGET="${{ env.TARGET_PLATFORM }}"
+          PLATFORM="${{ matrix.platform }}"
+
+          if [ "$TARGET" = "all" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          elif [ "$TARGET" = "mac" ] && [ "$PLATFORM" = "macos" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          elif [ "$TARGET" = "android" ] && [ "$PLATFORM" = "android" ]; then
+            echo "run=true" >> $GITHUB_OUTPUT
+          else
+            echo "run=false" >> $GITHUB_OUTPUT
+            echo "Skipping $PLATFORM (target: $TARGET)"
+          fi
+
       - name: Checkout
+        if: steps.should_run.outputs.run == 'true'
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Setup Android Signing
-        if: startsWith(matrix.platform,'android')
+        if: steps.should_run.outputs.run == 'true' && startsWith(matrix.platform,'android')
         run: |
           echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
           echo "${{ secrets.SERVICE_JSON }}" | base64 --decode > android/app/google-services.json
@@ -55,6 +70,7 @@ jobs:
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
 
       - name: Setup Go
+        if: steps.should_run.outputs.run == 'true'
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.0'
@@ -62,6 +78,7 @@ jobs:
             core/go.sum
 
       - name: Setup Flutter
+        if: steps.should_run.outputs.run == 'true'
         uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -69,14 +86,17 @@ jobs:
           cache: true
 
       - name: Get Flutter Dependency
+        if: steps.should_run.outputs.run == 'true'
         run: |
           flutter --version
           flutter pub get
 
       - name: Setup
+        if: steps.should_run.outputs.run == 'true'
         run: dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }} ${{ env.IS_STABLE == 'true' && '--env stable' || '' }}
 
       - name: Upload
+        if: steps.should_run.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: artifact-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
